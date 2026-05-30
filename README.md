@@ -9,6 +9,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 ![No dependencies](https://img.shields.io/badge/dependencies-none-brightgreen?style=flat-square)
 
+[![Live Demo](https://img.shields.io/badge/🤷_Live_Demo-excuse.exe-c8f135?style=for-the-badge&logoColor=black)](https://pero-grubac.github.io/excuse-generator/)
 </div>
 
 ---

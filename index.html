@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="description" content="Generate the perfect excuse for any occasion. 1000+ excuses in English and Serbian." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Excuses" />
+  <meta property="og:title" content="Excuse Generator" />
+  <meta property="og:description" content="1000+ excuses. One tap. Zero guilt." />
+  <meta property="og:type" content="website" />
+
+  <title>Excuse Generator</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/icon-16.png" />
+  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <div class="glow-orb" aria-hidden="true"></div>
+
+  <div class="container" role="main">
+
+    <!-- Header -->
+    <header>
+      <div class="header-top">
+        <h1 class="title">excuse<span class="title-accent">.</span>exe</h1>
+        <nav class="lang-switcher" id="langSwitcher" aria-label="Language selector"></nav>
+      </div>
+      <p class="subtitle" id="subtitle">1000+ excuses — no judgment</p>
+    </header>
+
+    <!-- Excuse card -->
+    <section class="card" id="excuseCard" aria-live="polite" aria-label="Generated excuse">
+      <div class="card-meta">
+        <span class="card-tag" id="cardTag">EXCUSE</span>
+        <span class="card-count" id="counterBadge">— / —</span>
+      </div>
+      <div class="excuse-body">
+        <span class="excuse-emoji" id="emojiDisplay" aria-hidden="true"></span>
+        <p class="excuse-text placeholder" id="excuseText" id="excuseText">
+          press generate to deploy your excuse
+        </p>
+      </div>
+    </section>
+
+    <!-- Generate -->
+    <button class="btn-generate" id="generateBtn">
+      <span id="btnLabel">Generate Excuse</span>
+    </button>
+
+    <!-- Actions -->
+    <div class="actions" role="group" aria-label="Excuse actions">
+      <button class="btn-action" id="copyBtn" title="Copy to clipboard">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="5" y="5" width="9" height="10" rx="1"/>
+          <path d="M11 5V3a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/>
+        </svg>
+        <span id="copyLabel">Copy</span>
+      </button>
+
+      <button class="btn-action" id="shareBtn" title="Share">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="3" r="1.5"/>
+          <circle cx="12" cy="13" r="1.5"/>
+          <circle cx="3" cy="8" r="1.5"/>
+          <path d="M10.5 3.8 4.5 7.2M4.5 8.8l6 3.4"/>
+        </svg>
+        <span id="shareLabel">Share</span>
+      </button>
+
+      <button class="btn-action fav-btn" id="favBtn" title="Save to favorites">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" id="favIcon">
+          <path d="M8 12.5S2 9 2 5a3 3 0 0 1 6 0 3 3 0 0 1 6 0c0 4-6 7.5-6 7.5Z"/>
+        </svg>
+        <span id="favLabel">Save</span>
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" role="region" aria-label="Statistics">
+      <div class="stat">
+        <span class="stat-value" id="totalCount">—</span>
+        <span class="stat-label" id="totalLabel">Total</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="generatedCount">0</span>
+        <span class="stat-label" id="genLabel">Generated</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value" id="favCount">0</span>
+        <span class="stat-label" id="savedLabel">Saved</span>
+      </div>
+    </div>
+
+    <!-- Favorites toggle -->
+    <button class="btn-favs-toggle" id="favsToggle" aria-expanded="false" aria-controls="favsPanel">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 6l5 5 5-5"/>
+      </svg>
+      <span id="favsToggleLabel">Saved Excuses</span>
+    </button>
+
+    <!-- Favorites panel -->
+    <div class="favs-panel" id="favsPanel" role="region" aria-label="Saved excuses">
+      <div class="favs-inner">
+        <div class="favs-header">
+          <span class="favs-title" id="favsTitle">Saved</span>
+          <button class="favs-clear" id="favsClear">Clear all</button>
+        </div>
+        <ul class="favs-list" id="favsList">
+          <li class="favs-empty" id="favsEmpty">No saved excuses yet.</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer>
+      <p>excuse.exe &mdash; <span id="footerYear"></span></p>
+    </footer>
+
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./script.js"></script>
+</body>
+</html>

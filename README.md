@@ -283,10 +283,12 @@ sequenceDiagram
 
 | Workflow | Runs on | What it does |
 |----------|---------|--------------|
-| `ci.yml` | Pull requests and pushes to branches other than `main` | Three jobs: **unit** (`npm test`), **e2e** (Playwright on desktop and mobile Chromium, traces uploaded on failure) and **lighthouse** (Lighthouse CI on exactly the files that get deployed, report uploaded as an artifact) |
-| `deploy.yml` | Push to `main`, or a manual run | Unit and e2e tests, then publishes the site to GitHub Pages only if both pass |
+| `ci.yml` | Every push (including `main`) and pull request | Three jobs: **unit** (`npm test`), **e2e** (Playwright on desktop and mobile Chromium, traces uploaded on failure) and **lighthouse** (Lighthouse CI on exactly the files that get deployed, report uploaded as an artifact) |
+| `deploy.yml` | After **CI passes on `main`**, or a manual run | Publishes the site's files to GitHub Pages; the tests already ran in CI |
 
-Both workflows **skip documentation-only changes** (`*.md`, `readme_assets/`, `LICENSE`, `.gitignore`, `.vscode/`), and a newer run on the same branch cancels the older one.
+Deploy is chained to CI (`workflow_run`): a push to `main` is tested once, and only a green run is published, from exactly the commit that was tested. Documentation-only commits start neither.
+
+CI **skips documentation-only changes** (`*.md`, `readme_assets/`, `LICENSE`, `.gitignore`, `.vscode/`), and a newer run on the same branch cancels the older one.
 
 Only the site's files are deployed (`index.html`, `style.css`, `script.js`, `core.js`, `service-worker.js`, `manifest.json`, `excuses.*.json`, `favicon.ico`, `assets/`).
 

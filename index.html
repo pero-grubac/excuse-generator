@@ -32,8 +32,11 @@
         <h1 class="title">excuse<span class="title-accent">.</span>exe</h1>
         <nav class="lang-switcher" id="langSwitcher" aria-label="Language selector"></nav>
       </div>
-      <p class="subtitle" id="subtitle">1000+ excuses — no judgment</p>
+      <p class="subtitle" id="subtitle">1600+ excuses — no judgment</p>
     </header>
+
+    <!-- Category filter -->
+    <nav class="cat-filter" id="catFilter" aria-label="Category"></nav>
 
     <!-- Excuse card -->
     <section class="card" id="excuseCard" aria-live="polite" aria-label="Generated excuse">
@@ -43,7 +46,7 @@
       </div>
       <div class="excuse-body">
         <span class="excuse-emoji" id="emojiDisplay" aria-hidden="true"></span>
-        <p class="excuse-text placeholder" id="excuseText" id="excuseText">
+        <p class="excuse-text placeholder" id="excuseText">
           press generate to deploy your excuse
         </p>
       </div>
@@ -52,6 +55,15 @@
     <!-- Generate -->
     <button class="btn-generate" id="generateBtn">
       <span id="btnLabel">Generate Excuse</span>
+    </button>
+
+    <!-- Excuse of the day -->
+    <button class="btn-daily" id="dailyBtn">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="8" cy="8" r="3"/>
+        <path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/>
+      </svg>
+      <span id="dailyLabel">Excuse of the day</span>
     </button>
 
     <!-- Actions -->
@@ -128,6 +140,6 @@
   <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="./script.js"></script>
+  <script type="module" src="./script.js"></script>
 </body>
 </html>

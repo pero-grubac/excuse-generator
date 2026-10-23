@@ -5,6 +5,11 @@
 
 'use strict';
 
+import {
+  CATEGORIES, idFromHash, langOfId, findById, filterByCategory,
+  pickNext, countUsed, excuseOfTheDay, migrateFavorites,
+} from './core.js';
+
 // ── Emoji set ──────────────────────────────────────────────────────────────
 const EMOJIS = [
   '🫥','😶‍🌫️','🫠','😵‍💫','🧟','👁','🌀','💀','🤖','👾',
@@ -17,8 +22,9 @@ const LANGUAGES = {
     label: 'EN',
     file: './excuses.en.json',
     ui: {
-      subtitle:        '1000+ excuses — no judgment',
+      subtitle:        '1600+ excuses — no judgment',
       btnLabel:        'Generate Excuse',
+      dailyLabel:      'Excuse of the day',
       copyLabel:       'Copy',
       shareLabel:      'Share',
       favLabel:        'Save',
@@ -32,12 +38,25 @@ const LANGUAGES = {
       favsEmpty:       'No saved excuses yet.',
       placeholder:     'press generate to deploy your excuse',
       cardTag:         'EXCUSE',
+      dailyTag:        'EXCUSE OF THE DAY',
+      catFilterLabel:  'Category',
+      cats: {
+        all:     'All',
+        work:    'Work',
+        tech:    'Tech',
+        home:    'Home',
+        commute: 'Commute',
+        mood:    'Mood',
+        social:  'Social',
+        absurd:  'Absurd',
+      },
       toastCopied:     '✓ Copied to clipboard',
       toastShared:     '✓ Link copied',
       toastFavAdd:     '✓ Saved',
       toastFavRm:      '✕ Removed',
       toastCleared:    '✕ Cleared',
       toastNeedGen:    'Generate an excuse first',
+      toastNotFound:   'That excuse does not exist',
       excuseWord:      'excuses',
     },
   },
@@ -45,8 +64,9 @@ const LANGUAGES = {
     label: 'SR',
     file: './excuses.sr.json',
     ui: {
-      subtitle:        '1000+ izgovora — bez osude',
+      subtitle:        '1250+ izgovora — bez osude',
       btnLabel:        'Generiši izgovor',
+      dailyLabel:      'Izgovor dana',
       copyLabel:       'Kopiraj',
       shareLabel:      'Podeli',
       favLabel:        'Sačuvaj',
@@ -60,24 +80,38 @@ const LANGUAGES = {
       favsEmpty:       'Nema sačuvanih izgovora.',
       placeholder:     'pritisni dugme da generišeš izgovor',
       cardTag:         'IZGOVOR',
+      dailyTag:        'IZGOVOR DANA',
+      catFilterLabel:  'Kategorija',
+      cats: {
+        all:     'Sve',
+        work:    'Posao',
+        tech:    'Tehnika',
+        home:    'Kuća',
+        commute: 'Put',
+        mood:    'Raspoloženje',
+        social:  'Društvo',
+        absurd:  'Apsurd',
+      },
       toastCopied:     '✓ Kopirano',
       toastShared:     '✓ Link kopiran',
       toastFavAdd:     '✓ Sačuvano',
       toastFavRm:      '✕ Uklonjeno',
       toastCleared:    '✕ Obrisano',
       toastNeedGen:    'Prvo generiši izgovor',
+      toastNotFound:   'Taj izgovor ne postoji',
       excuseWord:      'izgovora',
     },
   },
 };
 
 // ── State ──────────────────────────────────────────────────────────────────
-let currentLang     = localStorage.getItem('eg_lang') || 'en';
+let currentLang     = LANGUAGES[localStorage.getItem('eg_lang')] ? localStorage.getItem('eg_lang') : 'en';
+let currentCat      = ['all', ...CATEGORIES].includes(localStorage.getItem('eg_cat')) ? localStorage.getItem('eg_cat') : 'all';
 let excuses         = [];
-let currentExcuse   = null;
-let usedIndices     = new Set();
+let currentExcuse   = null;   // { id, text, cat }
+let usedIds         = new Set();
 let totalGenerated  = 0;
-let favorites       = loadFavs();
+let favorites       = [];     // excuse ids
 let favsOpen        = false;
 
 // ── DOM ────────────────────────────────────────────────────────────────────
@@ -86,7 +120,9 @@ const $  = (id) => document.getElementById(id);
 const excuseCard      = $('excuseCard');
 const emojiEl         = $('emojiDisplay');
 const excuseEl        = $('excuseText');
+const cardTagEl       = $('cardTag');
 const generateBtn     = $('generateBtn');
+const dailyBtn        = $('dailyBtn');
 const copyBtn         = $('copyBtn');
 const shareBtn        = $('shareBtn');
 const favBtn          = $('favBtn');
@@ -99,6 +135,7 @@ const favsPanel       = $('favsPanel');
 const favsList        = $('favsList');
 const favsToggle      = $('favsToggle');
 const langSwitcher    = $('langSwitcher');
+const catFilter       = $('catFilter');
 
 // ── Storage helpers ────────────────────────────────────────────────────────
 function loadFavs() {
@@ -124,14 +161,42 @@ function buildLangSwitcher() {
   });
 }
 
+// ── Category filter ────────────────────────────────────────────────────────
+function buildCatFilter() {
+  const ui = LANGUAGES[currentLang].ui;
+  catFilter.innerHTML = '';
+  catFilter.setAttribute('aria-label', ui.catFilterLabel);
+  ['all', ...CATEGORIES].forEach((cat) => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-chip' + (cat === currentCat ? ' active' : '');
+    btn.dataset.cat = cat;
+    btn.textContent = ui.cats[cat];
+    btn.setAttribute('aria-pressed', cat === currentCat ? 'true' : 'false');
+    btn.addEventListener('click', () => setCategory(cat));
+    catFilter.appendChild(btn);
+  });
+}
+
+function setCategory(cat) {
+  if (cat === currentCat) return;
+  currentCat = cat;
+  localStorage.setItem('eg_cat', cat);
+  buildCatFilter();
+  updateCountBadge();
+}
+
+function pool() {
+  return filterByCategory(excuses, currentCat);
+}
+
 function applyUI() {
   const ui = LANGUAGES[currentLang].ui;
 
   $('subtitle').textContent        = ui.subtitle;
   $('btnLabel').textContent        = ui.btnLabel;
+  $('dailyLabel').textContent      = ui.dailyLabel;
   $('copyLabel').textContent       = ui.copyLabel;
   $('shareLabel').textContent      = ui.shareLabel;
-  $('cardTag').textContent         = ui.cardTag;
   $('totalLabel').textContent      = ui.totalLabel;
   $('genLabel').textContent        = ui.genLabel;
   $('savedLabel').textContent      = ui.savedLabel;
@@ -140,12 +205,14 @@ function applyUI() {
   $('favsToggleLabel').textContent = ui.favsToggleLabel;
 
   if (!currentExcuse) {
+    cardTagEl.textContent = ui.cardTag;
     excuseEl.textContent = ui.placeholder;
     excuseEl.classList.add('placeholder');
     emojiEl.classList.remove('visible');
     emojiEl.textContent = '';
   }
 
+  buildCatFilter();
   updateFavBtn();
   updateCountBadge();
 }
@@ -156,15 +223,15 @@ async function switchLang(code) {
   localStorage.setItem('eg_lang', code);
   excuses        = [];
   currentExcuse  = null;
-  usedIndices    = new Set();
-  favorites      = loadFavs();
+  usedIds        = new Set();
+  favorites      = [];
   totalGenerated = 0;
 
   generatedCountEl.textContent = 0;
-  favCountEl.textContent       = favorites.length;
 
   // Close favs
   if (favsOpen) toggleFavsPanel(false);
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
 
   buildLangSwitcher();
   await loadExcuses();
@@ -174,7 +241,6 @@ async function switchLang(code) {
 
 // ── Load excuses ───────────────────────────────────────────────────────────
 async function loadExcuses() {
-  const ui = LANGUAGES[currentLang].ui;
   counterBadge.textContent = '…';
   try {
     const r = await fetch(LANGUAGES[currentLang].file);
@@ -182,33 +248,55 @@ async function loadExcuses() {
     excuses = await r.json();
   } catch (err) {
     console.warn('Failed to load excuses:', err);
-    excuses = [
-      currentLang === 'sr'
+    excuses = [{
+      id: `${currentLang}-0001`,
+      cat: 'home',
+      text: currentLang === 'sr'
         ? 'Moj alarm je odlučio da uzme slobodan dan.'
         : 'My alarm clock decided to take a personal day.',
-    ];
+    }];
   }
+
+  // Favourites were stored as texts before excuses had ids.
+  const stored = loadFavs();
+  favorites = migrateFavorites(stored, excuses);
+  if (JSON.stringify(stored) !== JSON.stringify(favorites)) saveFavs();
+
   totalCountEl.textContent = excuses.length;
+  favCountEl.textContent   = favorites.length;
   updateCountBadge();
 }
 
 function updateCountBadge() {
-  const ui = LANGUAGES[currentLang].ui;
+  const list = pool();
   counterBadge.textContent =
-    excuses.length ? `${usedIndices.size} / ${excuses.length}` : '— / —';
+    list.length ? `${countUsed(list, usedIds)} / ${list.length}` : '— / —';
+}
+
+// ── Showing an excuse ──────────────────────────────────────────────────────
+function showExcuse(item, { daily = false } = {}) {
+  const ui = LANGUAGES[currentLang].ui;
+  currentExcuse = item;
+  excuseCard.classList.add('has-excuse');
+  excuseCard.classList.toggle('is-daily', daily);
+  cardTagEl.textContent = `${daily ? ui.dailyTag : ui.cardTag} · ${ui.cats[item.cat] || item.cat}`;
+  emojiEl.textContent = daily ? '☀️' : EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+  excuseEl.textContent = item.text;
+  excuseEl.classList.remove('placeholder');
+  history.replaceState(null, '', `#${item.id}`);
+  updateFavBtn();
+  renderFavsIfOpen();
+
+  requestAnimationFrame(() => {
+    emojiEl.classList.add('visible');
+    excuseEl.classList.add('visible');
+  });
 }
 
 // ── Core: generate ─────────────────────────────────────────────────────────
-function pickExcuse() {
-  if (usedIndices.size >= excuses.length) usedIndices.clear();
-  let idx;
-  do { idx = Math.floor(Math.random() * excuses.length); } while (usedIndices.has(idx));
-  usedIndices.add(idx);
-  return excuses[idx];
-}
-
 function generate() {
-  if (!excuses.length) return;
+  const list = pool();
+  if (!list.length) return;
 
   // Button flash
   generateBtn.classList.remove('flash');
@@ -222,51 +310,72 @@ function generate() {
   excuseCard.classList.add('has-excuse');
 
   setTimeout(() => {
-    currentExcuse = pickExcuse();
+    const item = pickNext(list, usedIds);
     totalGenerated++;
     generatedCountEl.textContent = totalGenerated;
     updateCountBadge();
-    updateFavBtn();
-    renderFavsIfOpen();
-
-    emojiEl.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-    excuseEl.textContent = currentExcuse;
-    excuseEl.classList.remove('placeholder');
-
-    requestAnimationFrame(() => {
-      emojiEl.classList.add('visible');
-      excuseEl.classList.add('visible');
-    });
+    showExcuse(item);
 
     // Milestone confetti every 10 excuses
     if (totalGenerated % 10 === 0) spawnConfetti();
   }, 80);
 }
 
+function showDaily() {
+  const item = excuseOfTheDay(excuses, currentLang);
+  if (!item) return;
+  excuseEl.classList.remove('visible');
+  emojiEl.classList.remove('visible');
+  setTimeout(() => showExcuse(item, { daily: true }), 80);
+}
+
+// ── Deep links (#en-0042) ──────────────────────────────────────────────────
+async function openFromHash() {
+  const id = idFromHash(location.hash);
+  if (!id || id === currentExcuse?.id) return;
+  const lang = langOfId(id, Object.keys(LANGUAGES));
+  if (lang && lang !== currentLang) await switchLang(lang);
+  const item = lang && findById(excuses, id);
+  if (!item) {
+    toast_(LANGUAGES[currentLang].ui.toastNotFound, 'danger');
+    return;
+  }
+  usedIds.add(item.id);
+  updateCountBadge();
+  showExcuse(item);
+}
+
+function linkTo(item) {
+  return `${location.origin}${location.pathname}#${item.id}`;
+}
+
 // ── Copy / Share ───────────────────────────────────────────────────────────
-function copy() {
-  const ui = LANGUAGES[currentLang].ui;
-  if (!currentExcuse) { toast_(ui.toastNeedGen, 'danger'); return; }
+function writeClipboard(text) {
   const fallback = () => {
     const ta = document.createElement('textarea');
-    ta.value = currentExcuse; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove();
   };
-  (navigator.clipboard
-    ? navigator.clipboard.writeText(currentExcuse).catch(fallback)
-    : Promise.resolve(fallback())
-  ).then(() => toast_(ui.toastCopied, 'accent'));
+  return navigator.clipboard
+    ? navigator.clipboard.writeText(text).catch(fallback)
+    : Promise.resolve(fallback());
+}
+
+function copy() {
+  const ui = LANGUAGES[currentLang].ui;
+  if (!currentExcuse) { toast_(ui.toastNeedGen, 'danger'); return; }
+  writeClipboard(currentExcuse.text).then(() => toast_(ui.toastCopied, 'accent'));
 }
 
 function share() {
   const ui = LANGUAGES[currentLang].ui;
   if (!currentExcuse) { toast_(ui.toastNeedGen, 'danger'); return; }
+  const url = linkTo(currentExcuse);
   if (navigator.share) {
-    navigator.share({ title: 'excuse.exe', text: currentExcuse }).catch(() => {});
+    navigator.share({ title: 'excuse.exe', text: currentExcuse.text, url }).catch(() => {});
   } else {
-    copy();
-    toast_(ui.toastShared, 'accent');
+    writeClipboard(url).then(() => toast_(ui.toastShared, 'accent'));
   }
 }
 
@@ -274,9 +383,9 @@ function share() {
 function toggleFavorite() {
   const ui = LANGUAGES[currentLang].ui;
   if (!currentExcuse) { toast_(ui.toastNeedGen, 'danger'); return; }
-  const idx = favorites.indexOf(currentExcuse);
+  const idx = favorites.indexOf(currentExcuse.id);
   if (idx === -1) {
-    favorites.unshift(currentExcuse);
+    favorites.unshift(currentExcuse.id);
     toast_(ui.toastFavAdd, 'accent');
   } else {
     favorites.splice(idx, 1);
@@ -289,9 +398,10 @@ function toggleFavorite() {
 }
 
 function updateFavBtn() {
-  if (!currentExcuse) return;
+  // With no excuse on screen (e.g. right after a language switch) the button
+  // still has to reset its label and state, or it keeps the previous ones.
   const ui    = LANGUAGES[currentLang].ui;
-  const isFav = favorites.includes(currentExcuse);
+  const isFav = !!currentExcuse && favorites.includes(currentExcuse.id);
   $('favLabel').textContent = isFav ? ui.unfavLabel : ui.favLabel;
   favBtn.classList.toggle('is-fav', isFav);
 
@@ -303,25 +413,17 @@ function updateFavBtn() {
 function renderFavs() {
   const ui = LANGUAGES[currentLang].ui;
   favsList.innerHTML = '';
-  if (!favorites.length) {
+  const items = favorites.map((id) => findById(excuses, id)).filter(Boolean);
+  if (!items.length) {
     const li = document.createElement('li');
     li.className = 'favs-empty'; li.textContent = ui.favsEmpty;
     favsList.appendChild(li); return;
   }
-  favorites.forEach((text) => {
+  items.forEach((item) => {
     const li = document.createElement('li');
     li.className = 'fav-item';
-    li.textContent = text;
-    li.addEventListener('click', () => {
-      currentExcuse = text;
-      excuseCard.classList.add('has-excuse');
-      emojiEl.textContent = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
-      excuseEl.textContent = text;
-      excuseEl.classList.remove('placeholder');
-      emojiEl.classList.add('visible');
-      excuseEl.classList.add('visible');
-      updateFavBtn();
-    });
+    li.textContent = item.text;
+    li.addEventListener('click', () => showExcuse(item));
     favsList.appendChild(li);
   });
 }
@@ -382,11 +484,13 @@ function spawnConfetti() {
 
 // ── Event listeners ────────────────────────────────────────────────────────
 generateBtn.addEventListener('click', generate);
+dailyBtn   .addEventListener('click', showDaily);
 copyBtn    .addEventListener('click', copy);
 shareBtn   .addEventListener('click', share);
 favBtn     .addEventListener('click', toggleFavorite);
 favsToggle .addEventListener('click', () => toggleFavsPanel());
 $('favsClear').addEventListener('click', clearFavs);
+window.addEventListener('hashchange', openFromHash);
 
 document.addEventListener('keydown', (e) => {
   if (e.target !== document.body) return;
@@ -397,19 +501,27 @@ document.addEventListener('keydown', (e) => {
 // ── Init ───────────────────────────────────────────────────────────────────
 (async function init() {
   $('footerYear').textContent = new Date().getFullYear();
+
+  // A shared link decides the language before anything is loaded.
+  const linkLang = langOfId(idFromHash(location.hash), Object.keys(LANGUAGES));
+  if (linkLang) {
+    currentLang = linkLang;
+    localStorage.setItem('eg_lang', linkLang);
+  }
   document.documentElement.lang = currentLang;
 
   buildLangSwitcher();
   await loadExcuses();
   applyUI();
-  favCountEl.textContent = favorites.length;
+  await openFromHash();
 
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('./service-worker.js')
-        .then((reg) => console.log('[SW] registered', reg.scope))
-        .catch((err) => console.warn('[SW] registration failed', err));
-    });
+    const register = () => navigator.serviceWorker
+      .register('./service-worker.js')
+      .then((reg) => console.log('[SW] registered', reg.scope))
+      .catch((err) => console.warn('[SW] registration failed', err));
+    // Module scripts run after parsing, so the load event may already be over.
+    if (document.readyState === 'complete') register();
+    else window.addEventListener('load', register);
   }
 })();

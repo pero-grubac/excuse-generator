@@ -190,6 +190,40 @@ header {
   font-weight: 500;
 }
 
+/* ── Category filter ── */
+.cat-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat-chip {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.cat-chip:hover {
+  color: var(--white);
+  border-color: rgba(255,255,255,0.25);
+  background: var(--bg-3);
+}
+
+.cat-chip.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: rgba(200,241,53,0.35);
+}
+
 /* ── Main card ── */
 .card {
   background: var(--surface);
@@ -366,6 +400,40 @@ header {
   50%       { background: #eeff6b; }
 }
 .btn-generate.flash { animation: flash 0.18s ease; }
+
+/* ── Excuse of the day ── */
+.btn-daily {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: transparent;
+  border: 1px dashed var(--border-2);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition);
+}
+
+.btn-daily:hover {
+  color: var(--accent);
+  border-color: rgba(200,241,53,0.35);
+}
+
+.btn-daily svg {
+  width: 13px; height: 13px;
+  flex-shrink: 0;
+}
+
+.card.is-daily {
+  border-color: rgba(200,241,53,0.3);
+}
 
 /* ── Action row ── */
 .actions {
@@ -637,6 +705,8 @@ footer {
 /* ── Responsive ── */
 @media (max-width: 480px) {
   body { padding: 16px 12px 32px; }
+  .header-top { flex-wrap: nowrap; align-items: center; }
+  .title { font-size: clamp(1.6rem, 7.4vw, 2rem); }
   .container { gap: 14px; }
   .card { padding: 24px 20px; min-height: 170px; }
   .actions { grid-template-columns: repeat(3, 1fr); gap: 6px; }

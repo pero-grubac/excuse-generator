@@ -16,7 +16,7 @@
 
 [![Live Demo](https://img.shields.io/badge/🤷_Live_Demo-excuse.exe-C8F135?style=for-the-badge)](https://pero-grubac.github.io/excuse-generator/)
 
-<img src="readme_assets/demo.gif" alt="excuse.exe demo: generating excuses, filtering by category, saving a favourite, the excuse of the day, sharing a link, switching to Serbian and opening the saved excuses" width="800">
+<img src="readme_assets/demo.gif" alt="excuse.exe demo: generating excuses, filtering by the Tech category, saving one, sharing its link, opening the saved excuses, then switching to Serbian and generating one there" width="800">
 
 </div>
 
